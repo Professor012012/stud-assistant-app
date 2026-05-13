@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/viewmodels/auth_viewmodel.dart';
-import 'package:flutter_application_1/widgets/auth_wrapper.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:assistants_app/viewmodels/application_viewmodel.dart';
+import 'package:assistants_app/viewmodels/auth_viewmodel.dart';
+import 'package:assistants_app/widgets/auth_wrapper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthViewModel()),
+        ChangeNotifierProvider(create: (_) => ApplicationViewModel()),
       ],
       child: MaterialApp(
         title: 'Student Assistant',

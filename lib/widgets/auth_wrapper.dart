@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_application_1/viewmodels/auth_viewmodel.dart';
-import 'package:flutter_application_1/views/auth/login_screen.dart';
-import 'package:flutter_application_1/widgets/skeleton_loader.dart';
+import 'package:assistants_app/viewmodels/auth_viewmodel.dart';
+import 'package:assistants_app/views/auth/login_screen.dart';
+import 'package:assistants_app/widgets/skeleton_loader.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});

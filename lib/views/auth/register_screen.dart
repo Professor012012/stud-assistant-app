@@ -1,4 +1,4 @@
-import 'package:flutter_application_1/viewmodels/auth_viewmodel.dart';
+import 'package:assistants_app/viewmodels/auth_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

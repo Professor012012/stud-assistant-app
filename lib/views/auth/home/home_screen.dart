@@ -1,5 +1,8 @@
-import 'package:flutter_application_1/models/application_model.dart';
-import 'package:flutter_application_1/viewmodels/auth_viewmodel.dart';
+import 'package:assistants_app/models/application_model.dart';
+import 'package:assistants_app/viewmodels/application_viewmodel.dart';
+import 'package:assistants_app/viewmodels/auth_viewmodel.dart';
+import 'package:assistants_app/views/application/application_detail_screen.dart';
+import 'package:assistants_app/views/application/application_form_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -13,12 +16,18 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
-    super.initState();    
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userId =
+          context.read<AuthViewModel>().currentUser!.id;
+      context.read<ApplicationViewModel>().loadApplication(userId);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthViewModel>();
+    final appVm = context.watch<ApplicationViewModel>();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -40,25 +49,40 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildWelcomeBanner(auth.currentUser?.email ?? 'Student'),
-            const SizedBox(height: 24),
-            const Text(
-              'My Application',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A237E),
+      body: RefreshIndicator(
+        onRefresh: () =>
+            appVm.loadApplication(auth.currentUser!.id),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildWelcomeBanner(auth.currentUser?.email ?? 'Student'),
+              const SizedBox(height: 24),
+              const Text(
+                'My Application',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A237E),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-      
-          ],
+              const SizedBox(height: 12),
+
+              if (appVm.isLoading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(40),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (appVm.application == null)
+                _buildNoApplicationCard(context)
+              else
+                _buildApplicationCard(context, appVm.application!),
+            ],
+          ),
         ),
       ),
     );
@@ -140,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const Placeholder(),
+                    builder: (_) => const ApplicationFormScreen(),
                   ),
                 );
               },
@@ -234,7 +258,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => Placeholder(
+                          builder: (_) => ApplicationDetailScreen(
+                            application: application,
                           ),
                         ),
                       );
