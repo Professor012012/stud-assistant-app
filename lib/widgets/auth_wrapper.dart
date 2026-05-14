@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:assistants_app/viewmodels/auth_viewmodel.dart';
+import 'package:assistants_app/views/auth/home/admin_shell.dart';
 import 'package:assistants_app/views/auth/home/student_shell.dart';
 import 'package:assistants_app/views/auth/login_screen.dart';
 import 'package:assistants_app/widgets/skeleton_loader.dart';
@@ -24,7 +25,7 @@ class AuthWrapper extends StatelessWidget {
             return const AppLoadingSkeleton();
           }
 
-          if (auth.isAdmin) return const Placeholder();
+          if (auth.isAdmin) return const AdminShell();
           return const StudentShell();
         }
 
