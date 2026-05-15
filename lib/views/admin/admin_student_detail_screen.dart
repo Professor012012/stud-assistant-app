@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:assistants_app/models/application_model.dart';
 import 'package:assistants_app/models/user_model.dart';
-import 'package:assistants_app/views/admin/admin_application_detail_screen.dart';
-import 'package:assistants_app/widgets/skeleton_loader.dart';
+import 'package:assistants_app/viewmodels/admin_viewmodel.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class AdminStudentDetailScreen extends StatefulWidget {
   final UserModel student;
@@ -15,20 +14,70 @@ class AdminStudentDetailScreen extends StatefulWidget {
 }
 
 class _AdminStudentDetailScreenState extends State<AdminStudentDetailScreen> {
-  List<ApplicationModel> _history = [];
-  bool _loading = true;
+  late UserModel _student;
 
   @override
   void initState() {
     super.initState();
+    _student = widget.student;
+  }
+
+  Future<void> _disableAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Disable account?'),
+        content: Text(
+          'This will block ${_student.fullName.isNotEmpty ? _student.fullName : _student.email} from signing in.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Disable account'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final adminVm = context.read<AdminViewModel>();
+    final success = await adminVm.disableStudentAccount(_student.id);
+
+    if (!mounted) return;
+
+    if (success) {
+      setState(() {
+        _student = _student.copyWith(isDisabled: true);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account disabled.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(adminVm.errorMessage ?? 'Failed to disable account.'),
+        backgroundColor: Colors.red.shade700,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final student = widget.student;
-    final initials = student.fullName.isNotEmpty
-        ? student.fullName.trim().split(' ').map((e) => e[0]).take(2).join()
-        : student.email[0].toUpperCase();
+    final adminVm = context.watch<AdminViewModel>();
+    final initials = _student.fullName.isNotEmpty
+        ? _student.fullName.trim().split(' ').map((e) => e[0]).take(2).join()
+        : _student.email[0].toUpperCase();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -41,7 +90,7 @@ class _AdminStudentDetailScreenState extends State<AdminStudentDetailScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Center(
               child: Column(
@@ -66,9 +115,10 @@ class _AdminStudentDetailScreenState extends State<AdminStudentDetailScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    student.fullName.isNotEmpty
-                        ? student.fullName
+                    _student.fullName.isNotEmpty
+                        ? _student.fullName
                         : 'Name not set',
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -76,7 +126,8 @@ class _AdminStudentDetailScreenState extends State<AdminStudentDetailScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    student.email,
+                    _student.email,
+                    textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                   ),
                 ],
@@ -96,131 +147,71 @@ class _AdminStudentDetailScreenState extends State<AdminStudentDetailScreen> {
               children: [
                 _buildRow(
                   'Full Name',
-                  student.fullName.isNotEmpty ? student.fullName : 'Not set',
+                  _student.fullName.isNotEmpty ? _student.fullName : 'Not set',
                 ),
                 _buildDivider(),
                 _buildRow(
                   'Student Number',
-                  student.studentNumber?.isNotEmpty == true
-                      ? student.studentNumber!
+                  _student.studentNumber?.isNotEmpty == true
+                      ? _student.studentNumber!
                       : 'Not set',
                 ),
                 _buildDivider(),
-                _buildRow('Email', student.email),
+                _buildRow('Email', _student.email),
+                _buildDivider(),
+                _buildRow(
+                  'Year of Study',
+                  _student.yearOfStudy?.isNotEmpty == true
+                      ? _student.yearOfStudy!
+                      : 'Not set',
+                ),
+                _buildDivider(),
+                _buildRow(
+                  'Phone',
+                  _student.phone?.isNotEmpty == true
+                      ? _student.phone!
+                      : 'Not set',
+                ),
+                _buildDivider(),
+                _buildRow(
+                  'Account Status',
+                  _student.isDisabled ? 'Disabled' : 'Active',
+                ),
               ],
             ),
             const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Application History',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A237E),
-                  ),
+            SizedBox(
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: _student.isDisabled || adminVm.isLoading
+                    ? null
+                    : _disableAccount,
+                icon: adminVm.isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.block),
+                label: Text(
+                  _student.isDisabled
+                      ? 'Account disabled'
+                      : 'Disable account',
                 ),
-                if (!_loading)
-                  Text(
-                    '${_history.length} record${_history.length != 1 ? 's' : ''}',
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade700,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.grey.shade400,
+                  disabledForegroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            if (_loading)
-              const DetailScreenSkeleton()
-            else if (_history.isEmpty)
-              _buildInfoCard(
-                children: [
-                  Text(
-                    'No applications found.',
-                    style: TextStyle(color: Colors.grey.shade500),
-                  ),
-                ],
-              )
-            else
-              ..._history
-                  .map((app) => _buildHistoryCard(context, app))
-                  .toList(),
-
-            const SizedBox(height: 32),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHistoryCard(BuildContext context, ApplicationModel app) {
-    final statusColor = app.status == 'approved'
-        ? Colors.green
-        : app.status == 'rejected'
-        ? Colors.red
-        : Colors.orange;
-
-    // Safe: won't crash if modules list is empty
-    final moduleName = app.modules.isNotEmpty
-        ? app.modules.first.moduleName
-        : 'No module';
-
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AdminApplicationDetailScreen(application: app),
-        ),
-      ),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    moduleName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    app.createdAt != null
-                        ? '${app.yearOfStudy}  -  ${app.createdAt!.day}/${app.createdAt!.month}/${app.createdAt!.year}'
-                        : '${app.yearOfStudy}  -  N/A',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                app.status.toUpperCase(),
-                style: TextStyle(
-                  color: statusColor,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-            const SizedBox(width: 6),
-            const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
           ],
         ),
       ),
@@ -228,40 +219,43 @@ class _AdminStudentDetailScreenState extends State<AdminStudentDetailScreen> {
   }
 
   Widget _buildInfoCard({required List<Widget> children}) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.grey.shade200),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: children,
-    ),
-  );
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: children,
+        ),
+      );
 
   Widget _buildRow(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 130,
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-          ),
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 130,
+              child: Text(
+                label,
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          ),
-        ),
-      ],
-    ),
-  );
+      );
 
   Widget _buildDivider() => Divider(height: 16, color: Colors.grey.shade200);
 }

@@ -64,6 +64,25 @@ class AdminService {
     await _client.from('applications').update({'status': status}).eq('id', applicationId);
   }
 
+  Future<void> disableStudentAccount(String studentId) async {
+    try {
+      await _client
+          .from('profiles')
+          .update({'is_disabled': true})
+          .eq('id', studentId)
+          .eq('role', 'student');
+    } on PostgrestException catch (e) {
+      if (e.code != 'PGRST204' && !e.message.toLowerCase().contains('is_disabled')) {
+        rethrow;
+      }
+      await _client
+          .from('profiles')
+          .update({'disabled': true})
+          .eq('id', studentId)
+          .eq('role', 'student');
+    }
+  }
+
   Future<void> deleteApplication(String applicationId) async {
     await _client.from('applications').delete().eq('id', applicationId);
   }

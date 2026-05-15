@@ -39,7 +39,15 @@ class AuthService {
       return UserModel(id: user.id, email: email, role: 'student');
     }
 
-    return UserModel.fromMap(profile);
+    final userModel = UserModel.fromMap(profile);
+    if (userModel.isDisabled) {
+      await _client.auth.signOut();
+      throw AuthException(
+        'Your account has been disabled. Please contact the administrator for an appeal.',
+      );
+    }
+
+    return userModel;
   }
 
   Future<void> logout() async {

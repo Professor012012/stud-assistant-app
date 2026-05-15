@@ -7,6 +7,7 @@ class UserModel {
   final String? studentNumber;
   final String? yearOfStudy;
   final String? phone;
+  final bool isDisabled;
 
   UserModel({
     required this.id,
@@ -17,6 +18,7 @@ class UserModel {
     this.studentNumber,
     this.yearOfStudy,
     this.phone,
+    this.isDisabled = false,
   });
 
   String get uid => id;
@@ -32,6 +34,7 @@ class UserModel {
         'student_number': studentNumber,
         'year_of_study': yearOfStudy,
         'phone': phone,
+        'is_disabled': isDisabled,
       };
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
@@ -44,6 +47,7 @@ class UserModel {
       studentNumber: map['student_number'] ?? map['studentNumber'],
       yearOfStudy: map['year_of_study'],
       phone: map['phone'],
+      isDisabled: map['is_disabled'] == true || map['disabled'] == true,
     );
   }
 
@@ -53,6 +57,7 @@ class UserModel {
     String? email,
     String? yearOfStudy,
     String? phone,
+    bool? isDisabled,
   }) {
     final parts = (fullName ?? this.fullName).trim().split(RegExp(r'\s+'));
     return UserModel(
@@ -64,6 +69,7 @@ class UserModel {
       studentNumber: studentNumber ?? this.studentNumber,
       yearOfStudy: yearOfStudy ?? this.yearOfStudy,
       phone: phone ?? this.phone,
+      isDisabled: isDisabled ?? this.isDisabled,
     );
   }
 }

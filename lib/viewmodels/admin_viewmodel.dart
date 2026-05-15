@@ -82,6 +82,28 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
+  Future<bool> disableStudentAccount(String studentId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _service.disableStudentAccount(studentId);
+      _students = _students
+          .map((student) => student.id == studentId
+              ? student.copyWith(isDisabled: true)
+              : student)
+          .toList();
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Failed to disable account.';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> deleteApplication(String applicationId) async {
     _isLoading = true;
     notifyListeners();
